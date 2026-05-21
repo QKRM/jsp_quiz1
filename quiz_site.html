@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSP 코딩 퀴즈</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f172a; --surface: #1e293b; --surface2: #273549;
+  --border: #334155; --pink: #f472b6; --pink-dark: #db2777;
+  --blue: #7dd3fc; --green: #22c55e; --red: #ef4444;
+  --yellow: #fbbf24; --purple: #a855f7;
+  --text: #e2e8f0; --muted: #64748b; --muted2: #94a3b8;
+  --code-bg: #020617; --code-border: #1e3a5f; --code-text: #a5f3fc;
+}
+
+body {
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 16px 60px;
+}
+
+.stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.star {
+  position: absolute; width: 2px; height: 2px;
+  background: white; border-radius: 50%;
+  animation: twinkle var(--d,3s) ease-in-out infinite var(--dl,0s);
+  opacity: 0;
+}
+@keyframes twinkle { 0%,100%{opacity:0} 50%{opacity:var(--op,0.6)} }
+
+#app { position: relative; z-index: 1; width: 100%; max-width: 780px; }
+
+/* ── 시작 화면 ── */
+#start-screen { text-align: center; animation: fadeIn .5s ease; padding-top: 40px; }
+.start-logo { font-size: 4rem; margin-bottom: 20px; display: block; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+#start-screen h1 { font-size: 2.4rem; color: var(--pink); margin-bottom: 10px; text-shadow: 0 0 30px rgba(244,114,182,.35); }
+#start-screen .sub { color: var(--muted2); font-size: .95rem; line-height: 1.9; margin-bottom: 36px; }
+#start-screen .sub code { background: var(--surface); color: var(--blue); padding: 1px 7px; border-radius: 4px; font-size: .85rem; }
+
+.info-row { display: flex; justify-content: center; gap: 16px; margin-bottom: 44px; flex-wrap: wrap; }
+.info-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 28px; text-align: center; min-width: 110px;
+}
+.info-card .v { font-size: 1.8rem; font-weight: bold; color: var(--pink); }
+.info-card .l { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+.btn-main {
+  background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+  color: white; border: none; border-radius: 14px;
+  padding: 17px 60px; font-size: 1.15rem; font-weight: bold; cursor: pointer;
+  box-shadow: 0 4px 24px rgba(244,114,182,.4);
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-main:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(244,114,182,.55); }
+.btn-main:active { transform: translateY(0); }
+
+/* ── 퀴즈 화면 ── */
+#quiz-screen { display: none; }
+
+/* 진행바 */
+.top-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.q-count { font-size: .82rem; color: var(--muted2); font-weight: 700; white-space: nowrap; }
+.prog-track { flex: 1; height: 8px; background: var(--surface); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+.prog-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--pink), var(--purple));
+  transition: width .5s cubic-bezier(.4,0,.2,1); width: 0%;
+}
+.score-chip {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 99px; padding: 4px 14px;
+  font-size: .8rem; color: var(--muted2); white-space: nowrap;
+}
+.score-chip span { color: var(--green); font-weight: bold; }
+
+/* 문제 카드 */
+.q-card {
+  background: var(--surface); border-radius: 18px;
+  border: 1px solid var(--border); overflow: hidden;
+  animation: slideUp .38s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(28px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+.q-card-top {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.q-card-top::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--pink), var(--purple), var(--blue));
+}
+
+.q-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.q-badge {
+  background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+  color: white; font-size: .7rem; font-weight: bold;
+  padding: 4px 12px; border-radius: 99px;
+}
+.q-tag {
+  background: rgba(125,211,252,.1); color: var(--blue);
+  border: 1px solid rgba(125,211,252,.25);
+  font-size: .7rem; padding: 3px 10px; border-radius: 99px;
+}
+.q-title { font-size: 1.2rem; font-weight: bold; color: var(--text); margin-bottom: 10px; }
+.q-desc { color: var(--muted2); font-size: .88rem; line-height: 1.85; }
+.q-desc code {
+  background: var(--code-bg); color: var(--blue);
+  padding: 1px 6px; border-radius: 4px; font-size: .83rem;
+}
+.q-desc strong { color: var(--text); }
+
+/* 코드 미리보기 */
+.code-preview-wrap {
+  background: var(--code-bg); border-bottom: 1px solid var(--code-border);
+  padding: 18px 24px;
+}
+.code-preview-label {
+  font-size: .68rem; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .08em; margin-bottom: 10px; font-weight: 600;
+}
+.code-preview {
+  font-family: 'Consolas', 'D2Coding', 'Courier New', monospace;
+  font-size: 13px; line-height: 1.85; color: var(--code-text);
+  white-space: pre; overflow-x: auto;
+}
+.cp-blank {
+  background: rgba(244,114,182,.18); color: var(--yellow);
+  border-bottom: 2px solid var(--pink);
+  padding: 0 2px; border-radius: 3px 3px 0 0;
+  min-width: 8px; display: inline-block;
+  transition: color .1s;
+}
+.cp-blank.is-empty { color: rgba(251,191,36,.4); font-style: italic; }
+
+/* 입력 영역 */
+.input-area { padding: 22px 28px; }
+
+.input-label-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.input-label { font-size: .78rem; color: var(--muted2); font-weight: 600; }
+.btn-hint {
+  background: none; border: 1px solid var(--border);
+  color: var(--muted2); border-radius: 6px;
+  padding: 4px 12px; font-size: .75rem; cursor: pointer;
+  transition: border-color .15s, color .15s; font-family: inherit;
+}
+.btn-hint:hover { border-color: var(--yellow); color: var(--yellow); }
+.btn-hint.active { border-color: var(--yellow); color: var(--yellow); background: rgba(251,191,36,.07); }
+
+.hint-box {
+  background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.25);
+  border-radius: 8px; padding: 10px 14px;
+  font-size: .82rem; color: var(--yellow); line-height: 1.7;
+  margin-bottom: 12px; display: none;
+  animation: fadeIn .25s ease;
+}
+.hint-box.show { display: block; }
+
+.input-row { display: flex; gap: 10px; }
+.code-input {
+  flex: 1;
+  background: var(--code-bg); border: 2px solid var(--border);
+  border-radius: 10px; color: var(--yellow);
+  font-family: 'Consolas', 'D2Coding', monospace;
+  font-size: .98rem; padding: 13px 16px;
+  outline: none; transition: border-color .2s, box-shadow .2s;
+  caret-color: var(--pink);
+}
+.code-input::placeholder { color: var(--muted); font-style: italic; }
+.code-input:focus {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(244,114,182,.15);
+}
+.code-input.shake { animation: shake .38s ease; }
+.code-input.glow {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(34,197,94,.2);
+}
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-7px)}
+  40%{transform:translateX(7px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+  color: white; border: none; border-radius: 10px;
+  padding: 13px 24px; font-size: .95rem; font-weight: bold;
+  cursor: pointer; white-space: nowrap; font-family: inherit;
+  box-shadow: 0 2px 12px rgba(244,114,182,.35);
+  transition: transform .12s, box-shadow .12s;
+}
+.btn-submit:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(244,114,182,.5); }
+.btn-submit:active { transform: translateY(0); }
+.btn-submit:disabled {
+  background: var(--border); box-shadow: none; cursor: default; transform: none;
+}
+
+/* 피드백 */
+.feedback {
+  margin: 0 28px 22px;
+  border-radius: 10px; padding: 14px 18px;
+  font-size: .88rem; line-height: 1.8; display: none;
+  animation: fadeIn .3s ease;
+}
+.feedback.show { display: block; }
+.feedback.correct { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: #86efac; }
+.feedback.wrong   { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); color: #fca5a5; }
+.feedback strong { color: inherit; }
+.feedback code {
+  background: rgba(0,0,0,.3); padding: 1px 6px;
+  border-radius: 4px; font-size: .83rem; font-family: 'Consolas', monospace;
+}
+.correct-ans {
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid rgba(239,68,68,.2);
+  color: var(--muted2); font-size: .82rem;
+}
+.correct-ans code {
+  color: var(--green); background: rgba(34,197,94,.08);
+  border: 1px solid rgba(34,197,94,.2);
+  padding: 2px 8px; border-radius: 4px; font-family: 'Consolas', monospace;
+}
+
+.btn-next {
+  display: none; width: calc(100% - 56px); margin: 0 28px 24px;
+  background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+  color: white; border: none; border-radius: 10px;
+  padding: 14px; font-size: 1rem; font-weight: bold; cursor: pointer;
+  box-shadow: 0 3px 14px rgba(244,114,182,.35);
+  transition: transform .12s, box-shadow .12s;
+  animation: fadeIn .3s ease; font-family: inherit;
+}
+.btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(244,114,182,.5); }
+.btn-next.show { display: block; }
+
+/* ── 결과 화면 ── */
+#result-screen { display: none; text-align: center; animation: fadeIn .5s ease; padding-top: 20px; }
+.result-emoji {
+  font-size: 5.5rem; display: block; margin-bottom: 16px;
+  animation: popIn .7s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn { from{opacity:0;transform:scale(.2) rotate(-15deg)} to{opacity:1;transform:scale(1) rotate(0)} }
+.result-title { font-size: 1.9rem; font-weight: bold; color: var(--pink); margin-bottom: 8px; }
+.result-sub { color: var(--muted2); margin-bottom: 32px; font-size: .95rem; }
+
+.score-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 36px; margin-bottom: 24px;
+  position: relative; overflow: hidden;
+}
+.score-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--pink), var(--purple), var(--blue));
+}
+.score-big {
+  font-size: 5.5rem; font-weight: bold; color: var(--pink); line-height: 1;
+  text-shadow: 0 0 50px rgba(244,114,182,.5);
+}
+.score-denom { font-size: 2.2rem; color: var(--muted); }
+.score-label { color: var(--muted2); font-size: .85rem; margin-top: 8px; margin-bottom: 20px; }
+.score-bar-track { height: 12px; background: var(--bg); border-radius: 99px; overflow: hidden; }
+.score-bar-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--pink), var(--purple));
+  width: 0%; transition: width 1.3s cubic-bezier(.4,0,.2,1) .4s;
+}
+
+.result-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 24px;
+}
+.ri {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 4px; text-align: center;
+  font-size: .74rem; color: var(--muted2);
+}
+.ri .ico { font-size: 1.3rem; margin-bottom: 4px; }
+.ri.ok  { border-color: rgba(34,197,94,.4); background: rgba(34,197,94,.07); }
+.ri.bad { border-color: rgba(239,68,68,.4); background: rgba(239,68,68,.07); }
+
+/* 공통 */
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.particle {
+  position: fixed; pointer-events: none; z-index: 999; border-radius: 2px;
+  animation: pfall var(--dur,1s) ease-in var(--dl2,0s) forwards;
+}
+@keyframes pfall {
+  0%   { opacity:1; transform: translate(0,0) rotate(0deg); }
+  100% { opacity:0; transform: translate(var(--dx,0), 380px) rotate(var(--r,360deg)); }
+}
+
+@media(max-width:560px) {
+  .q-card-top, .input-area { padding-left: 18px; padding-right: 18px; }
+  .code-preview-wrap { padding: 14px 18px; }
+  .feedback { margin-left: 18px; margin-right: 18px; }
+  .btn-next { width: calc(100% - 36px); margin-left: 18px; margin-right: 18px; }
+  .input-row { flex-direction: column; }
+  .btn-submit { width: 100%; }
+  .result-grid { grid-template-columns: repeat(5,1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div id="app">
+
+  <!-- 시작 -->
+  <div id="start-screen">
+    <span class="start-logo">⌨️</span>
+    <h1>JSP 코딩 퀴즈</h1>
+    <p class="sub">
+      각 문제의 빈칸에 들어갈 <code>코드</code>를 직접 입력하세요.<br>
+      정답 코드를 타이핑하면 실시간으로 코드에 반영됩니다!
+    </p>
+    <div class="info-row">
+      <div class="info-card"><div class="v">10</div><div class="l">문제</div></div>
+      <div class="info-card"><div class="v">✍️</div><div class="l">직접 입력</div></div>
+      <div class="info-card"><div class="v">💡</div><div class="l">힌트 제공</div></div>
+    </div>
+    <button class="btn-main" onclick="startQuiz()">퀴즈 시작하기 ▶</button>
+  </div>
+
+  <!-- 퀴즈 -->
+  <div id="quiz-screen">
+    <div class="top-bar">
+      <span class="q-count" id="q-count">1 / 10</span>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+      <div class="score-chip">점수 <span id="score-span">0</span></div>
+    </div>
+
+    <div class="q-card" id="q-card">
+      <!-- 문제 텍스트 -->
+      <div class="q-card-top">
+        <div class="q-meta">
+          <span class="q-badge" id="q-badge">Q1</span>
+          <span class="q-tag"  id="q-tag"></span>
+        </div>
+        <div class="q-title" id="q-title"></div>
+        <div class="q-desc"  id="q-desc"></div>
+      </div>
+
+      <!-- 코드 미리보기 -->
+      <div class="code-preview-wrap">
+        <div class="code-preview-label">코드 미리보기 — 빈칸이 실시간으로 반영됩니다</div>
+        <div class="code-preview" id="code-preview">
+          <span id="cp-before"></span><span class="cp-blank is-empty" id="cp-blank">___</span><span id="cp-after"></span>
+        </div>
+      </div>
+
+      <!-- 입력 -->
+      <div class="input-area">
+        <div class="input-label-row">
+          <span class="input-label">정답 코드 입력 (Enter 또는 버튼으로 제출)</span>
+          <button class="btn-hint" id="btn-hint" onclick="toggleHint()">💡 힌트</button>
+        </div>
+        <div class="hint-box" id="hint-box"></div>
+        <div class="input-row">
+          <input class="code-input" id="code-input" type="text" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off"/>
+          <button class="btn-submit" id="btn-submit" onclick="submitAnswer()">제출 ↵</button>
+        </div>
+      </div>
+
+      <!-- 피드백 -->
+      <div class="feedback" id="feedback"></div>
+
+    </div><!-- /q-card -->
+
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">다음 문제 →</button>
+  </div>
+
+  <!-- 결과 -->
+  <div id="result-screen">
+    <span class="result-emoji" id="r-emoji">🎉</span>
+    <div class="result-title" id="r-title"></div>
+    <div class="result-sub"   id="r-sub"></div>
+    <div class="score-card">
+      <div class="score-big" id="r-score">0<span class="score-denom">/10</span></div>
+      <div class="score-label">정답 수</div>
+      <div class="score-bar-track"><div class="score-bar-fill" id="r-bar"></div></div>
+    </div>
+    <div class="result-grid" id="r-grid"></div>
+    <button class="btn-main" onclick="retryQuiz()">다시 도전하기 🔄</button>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+/* ────────── 문제 데이터 ────────── */
+const Q = [
+  {
+    tag: "Integer.parseInt",
+    title: "Q1. String → int 형변환",
+    desc: `<code>strNum = "42"</code>를 정수로 변환해 <code>num</code>에 저장하세요.<br>
+           <code>doubled = num * 2</code>의 결과가 <strong>84</strong>이면 정답입니다.`,
+    before: `String strNum = "42";\nint num = `,
+    after:  `;\nint doubled = num * 2;`,
+    ph: "예: SomeClass.method(strNum)",
+    hint: "Integer 클래스의 정적 메서드 parseInt()를 사용하세요. — Integer.parseInt(문자열)",
+    ok: s => rmsp(s) === "Integer.parseInt(strNum)",
+    ans: "Integer.parseInt(strNum)",
+    explain: `<strong>Integer.parseInt(String)</strong>은 문자열을 <code>int</code> 기본형으로 변환합니다.<br>
+              "42" → 42 로 변환되어 <code>doubled = 42 * 2 = 84</code> 가 됩니다.`,
+  },
+  {
+    tag: "trim · toLowerCase",
+    title: "Q2. String 메서드 체이닝",
+    desc: `<code>"&nbsp;&nbsp;Hello, JSP World!&nbsp;&nbsp;"</code>에서 앞뒤 공백을 제거하고<br>
+           모두 소문자로 변환해 <code>processed</code>에 저장하세요.<br>
+           결과: <code>"hello, jsp world!"</code>`,
+    before: `String raw = "  Hello, JSP World!  ";\nString processed = `,
+    after:  `;`,
+    ph: "예: raw.method1().method2()",
+    hint: "trim()으로 앞뒤 공백을 제거하고, toLowerCase()로 소문자 변환. 메서드를 점(.)으로 이어 붙이세요.",
+    ok: s => {
+      const n = rmsp(s);
+      return n === "raw.trim().toLowerCase()" || n === "raw.toLowerCase().trim()";
+    },
+    ans: "raw.trim().toLowerCase()",
+    explain: `<strong>trim()</strong>은 앞뒤 공백을 제거하고, <strong>toLowerCase()</strong>는 모든 문자를 소문자로 변환합니다.<br>
+              둘을 이어 쓰는 것을 <em>메서드 체이닝</em>이라고 합니다.`,
+  },
+  {
+    tag: "request.getParameter",
+    title: "Q3. request 파라미터 & null 처리",
+    desc: `URL에 <code>?nickname=</code> 파라미터가 없으면 <code>null</code>이 반환됩니다.<br>
+           <code>param</code>이 <code>null</code>이면 <strong>"익명"</strong>, 아니면 <code>param</code>을 <code>nickname</code>에 저장하세요.`,
+    before: `String param = request.getParameter("nickname");\nString nickname = `,
+    after:  `;`,
+    ph: '예: (조건) ? "참" : "거짓"',
+    hint: '삼항 연산자를 사용하세요. — (param == null) ? "익명" : param',
+    ok: s => {
+      const n = rmsp(s);
+      return n === `(param==null)?"익명":param`
+          || n === `param==null?"익명":param`
+          || n === `(param==null)?("익명"):param`;
+    },
+    ans: `(param == null) ? "익명" : param`,
+    explain: `<strong>삼항 연산자</strong> <code>(조건) ? 참일때 : 거짓일때</code>를 사용합니다.<br>
+              <code>param == null</code>이 참이면 <code>"익명"</code>을, 거짓이면 <code>param</code>을 반환합니다.`,
+  },
+  {
+    tag: "split · length",
+    title: "Q4. String 분리 & 배열 길이",
+    desc: `<code>"서울,부산,대구,인천,광주,대전"</code>을 쉼표로 분리해<br>
+           도시의 개수를 <code>cityCount</code>에 저장하세요. 예상: <strong>6</strong>`,
+    before: `String csv = "서울,부산,대구,인천,광주,대전";\nint cityCount = `,
+    after:  `;`,
+    ph: 'csv.메서드(",").속성',
+    hint: 'split(",")으로 분리하면 String 배열이 반환됩니다. 배열의 길이는 .length로 가져옵니다.',
+    ok: s => rmsp(s) === `csv.split(",").length`,
+    ans: `csv.split(",").length`,
+    explain: `<strong>split(구분자)</strong>는 문자열을 구분자 기준으로 잘라 배열을 반환합니다.<br>
+              <code>csv.split(",")</code> → <code>["서울","부산","대구","인천","광주","대전"]</code> (길이 6)`,
+  },
+  {
+    tag: "session.getAttribute",
+    title: "Q5. session 객체 읽기",
+    desc: `<code>session.setAttribute("visitCount", 7)</code>로 값이 저장되어 있습니다.<br>
+           <code>getAttribute()</code>로 읽어 <code>int</code>형 변수 <code>visits</code>에 저장하세요.`,
+    before: `session.setAttribute("visitCount", 7);\nint visits = `,
+    after:  `;`,
+    ph: "(타입캐스팅) session.getXxx(...)",
+    hint: 'getAttribute()는 Object를 반환합니다. (Integer)로 캐스팅해서 int에 대입하세요.',
+    ok: s => {
+      const n = rmsp(s);
+      return n === `(Integer)session.getAttribute("visitCount")`
+          || n === `(int)(Integer)session.getAttribute("visitCount")`;
+    },
+    ans: `(Integer) session.getAttribute("visitCount")`,
+    explain: `<strong>getAttribute()</strong>는 <code>Object</code>를 반환합니다.<br>
+              <code>(Integer)</code>로 캐스팅하면 자동으로 <code>int</code>로 언박싱됩니다.`,
+  },
+  {
+    tag: "Arrays.sort",
+    title: "Q6. 배열 정렬 & 최솟·최댓값",
+    desc: `<code>{72, 88, 45, 91, 63, 77}</code> 배열을 <strong>오름차순</strong>으로 정렬하세요.<br>
+           정렬 후 <code>scores[0] = 45</code>(최솟), <code>scores[length-1] = 91</code>(최댓)이 되어야 합니다.`,
+    before: `int[] scores = {72, 88, 45, 91, 63, 77};\n`,
+    after:  `\nint lowest  = scores[0];\nint highest = scores[scores.length - 1];`,
+    ph: "클래스.메서드(배열);",
+    hint: "java.util.Arrays 클래스의 sort() 정적 메서드를 사용하세요.",
+    ok: s => {
+      const n = rmsp(s);
+      return n === "Arrays.sort(scores);" || n === "Arrays.sort(scores)";
+    },
+    ans: "Arrays.sort(scores);",
+    explain: `<strong>Arrays.sort(배열)</strong>은 기본형 배열을 오름차순으로 정렬합니다.<br>
+              정렬 후 <code>scores = {45, 63, 72, 77, 88, 91}</code>이 됩니다.`,
+  },
+  {
+    tag: "복합 조건문",
+    title: "Q7. FizzBuzz — 15의 배수 조건",
+    desc: `1~15를 순회하는 FizzBuzz 코드에서,<br>
+           <strong>15의 배수</strong>를 먼저 판별하는 조건식을 입력하세요.<br>
+           (i가 15일 때 참이어야 합니다)`,
+    before: `for (int i = 1; i <= 15; i++) {\n    if (`,
+    after:  `)\n        fb.append("FizzBuzz ");\n    else if (i % 3 == 0)\n        fb.append("Fizz ");\n    else if (i % 5 == 0)\n        fb.append("Buzz ");\n    else\n        fb.append(i + " ");\n}`,
+    ph: "i % ? == ?",
+    hint: "15의 배수인지 확인하려면 15로 나눈 나머지가 0인지 확인하세요.",
+    ok: s => {
+      const n = rmsp(s);
+      return n === "i%15==0" || n === "(i%15==0)" || n === "i%15===0";
+    },
+    ans: "i % 15 == 0",
+    explain: `<code>i % 15 == 0</code>이 참이면 15의 배수입니다.<br>
+              <strong>15의 배수 조건을 가장 먼저</strong> 확인해야 합니다. 그래야 3의 배수/5의 배수 조건과 충돌하지 않습니다.`,
+  },
+  {
+    tag: "indexOf / split",
+    title: "Q8. 문자열 등장 횟수 세기",
+    desc: `<code>text</code>에서 <strong>"Java"</strong>가 몇 번 등장하는지 세어 <code>javaCount</code>에 저장하세요.<br>
+           예상: <strong>3</strong>`,
+    before: `String text = "Java는 배우기 쉽고 Java는 강력하며 Java는 널리 쓰인다";\nint javaCount = `,
+    after:  `;`,
+    ph: 'text.split("Java", ...).length - 1',
+    hint: 'text.split("Java", -1)로 분리하면 조각 수 - 1 = 등장 횟수가 됩니다.',
+    ok: s => {
+      const n = rmsp(s);
+      return n === `text.split("Java",-1).length-1`
+          || n === `text.split("Java",-1).length - 1`.replace(/\s/g,'');
+    },
+    ans: `text.split("Java", -1).length - 1`,
+    explain: `<code>split("Java", -1)</code>로 분리하면 n+1개 조각이 생깁니다 (n = "Java" 등장 횟수).<br>
+              따라서 <code>.length - 1</code> = 등장 횟수 3이 됩니다.`,
+  },
+  {
+    tag: "Random · 배열",
+    title: "Q9. 랜덤 인덱스로 배열 원소 선택",
+    desc: `<code>menu</code> 배열(길이 5)에서 유효한 랜덤 인덱스 <strong>(0~4)</strong>를 생성해<br>
+           <code>menuIdx</code>에 저장하세요.`,
+    before: `String[] menu = {"라면","피자","치킨","김밥","떡볶이"};\nRandom rand = new Random();\nint menuIdx = `,
+    after:  `;\nString todayMenu = menu[menuIdx];`,
+    ph: "rand.메서드(...)",
+    hint: "rand.nextInt(n)은 0 이상 n 미만의 랜덤 정수를 반환합니다.",
+    ok: s => rmsp(s) === "rand.nextInt(menu.length)",
+    ans: "rand.nextInt(menu.length)",
+    explain: `<strong>nextInt(n)</strong>은 0 이상 n 미만의 정수를 무작위로 반환합니다.<br>
+              <code>rand.nextInt(5)</code>는 0,1,2,3,4 중 하나를 반환합니다.`,
+  },
+  {
+    tag: "팩토리얼 · 재귀",
+    title: "Q10. 재귀로 팩토리얼 구현",
+    desc: `<code>factorial(5) = 120</code>이 되도록 재귀 메서드의 반환식을 완성하세요.<br>
+           5! = 5 × 4 × 3 × 2 × 1 = <strong>120</strong>`,
+    before: `int factorial(int n) {\n    return `,
+    after:  `;\n}`,
+    ph: "n <= ? ? ? : n * factorial(?)",
+    hint: "기저 조건(n이 0이나 1일 때 1 반환)과 재귀 호출(n * factorial(n-1))이 필요합니다.",
+    ok: s => {
+      const n = rmsp(s);
+      const hasRec  = n.includes("factorial(n-1)");
+      const hasBase = n.includes("n<=1") || n.includes("n<2")
+                   || n.includes("1>=n") || n.includes("n==0") || n.includes("n==1");
+      return hasRec && hasBase;
+    },
+    ans: "n <= 1 ? 1 : n * factorial(n-1)",
+    explain: `재귀의 핵심: <strong>기저 조건</strong> (<code>n <= 1</code>일 때 1 반환)과<br>
+              <strong>재귀 호출</strong> (<code>n * factorial(n-1)</code>)로 구성합니다.<br>
+              factorial(5) → 5*factorial(4) → 5*4*3*2*1 = 120`,
+  },
+];
+
+/* ────────── 유틸 ────────── */
+function rmsp(s) { return s.trim().replace(/\s+/g, ''); }
+
+/* ────────── 상태 ────────── */
+let cur = 0, score = 0;
+const results = [];
+
+/* ────────── 별 ────────── */
+(()=>{
+  const c = document.getElementById('stars');
+  for (let i=0;i<70;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    s.style.left=Math.random()*100+'%';
+    s.style.top =Math.random()*100+'%';
+    s.style.setProperty('--d',(2+Math.random()*4)+'s');
+    s.style.setProperty('--dl',(Math.random()*5)+'s');
+    s.style.setProperty('--op',(0.3+Math.random()*0.6).toFixed(2));
+    c.appendChild(s);
+  }
+})();
+
+/* ────────── 시작 ────────── */
+function startQuiz(){
+  cur=0; score=0; results.length=0;
+  document.getElementById('start-screen').style.display='none';
+  document.getElementById('quiz-screen').style.display='block';
+  renderQ();
+}
+
+function renderQ(){
+  const q = Q[cur];
+  document.getElementById('q-count').textContent = `${cur+1} / ${Q.length}`;
+  document.getElementById('prog-fill').style.width = (cur/Q.length*100)+'%';
+  document.getElementById('score-span').textContent = score;
+  document.getElementById('q-badge').textContent = `Q${cur+1}`;
+  document.getElementById('q-tag').textContent   = q.tag;
+  document.getElementById('q-title').textContent = q.title;
+  document.getElementById('q-desc').innerHTML    = q.desc;
+
+  // 코드 미리보기 초기화
+  document.getElementById('cp-before').textContent = q.before;
+  document.getElementById('cp-after').textContent  = q.after;
+  const blank = document.getElementById('cp-blank');
+  blank.textContent = '___';
+  blank.classList.add('is-empty');
+
+  // 힌트 초기화
+  const hintBox = document.getElementById('hint-box');
+  const btnHint = document.getElementById('btn-hint');
+  hintBox.innerHTML = '💡 ' + q.hint;
+  hintBox.classList.remove('show');
+  btnHint.classList.remove('active');
+
+  // 입력 초기화
+  const inp = document.getElementById('code-input');
+  inp.value = '';
+  inp.placeholder = q.ph;
+  inp.className = 'code-input';
+  inp.disabled = false;
+  inp.focus();
+
+  // 제출 버튼
+  document.getElementById('btn-submit').disabled = false;
+
+  // 피드백 숨기기
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback';
+  fb.innerHTML = '';
+
+  // 다음 버튼
+  document.getElementById('btn-next').className = 'btn-next';
+
+  // 카드 리애니메이션
+  const card = document.getElementById('q-card');
+  card.style.animation='none';
+  card.offsetHeight;
+  card.style.animation='';
+}
+
+/* 라이브 미리보기 */
+document.getElementById('code-input').addEventListener('input', function(){
+  const blank = document.getElementById('cp-blank');
+  if(this.value){
+    blank.textContent = this.value;
+    blank.classList.remove('is-empty');
+  } else {
+    blank.textContent = '___';
+    blank.classList.add('is-empty');
+  }
+});
+
+/* Enter로 제출 */
+document.getElementById('code-input').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') submitAnswer();
+});
+
+/* ────────── 힌트 ────────── */
+function toggleHint(){
+  const hintBox = document.getElementById('hint-box');
+  const btn     = document.getElementById('btn-hint');
+  const show    = !hintBox.classList.contains('show');
+  hintBox.classList.toggle('show', show);
+  btn.classList.toggle('active', show);
+}
+
+/* ────────── 제출 ────────── */
+function submitAnswer(){
+  const inp = document.getElementById('code-input');
+  const ans = inp.value;
+  if(!ans.trim()) {
+    inp.classList.add('shake');
+    setTimeout(()=>inp.classList.remove('shake'),400);
+    return;
+  }
+
+  const q = Q[cur];
+  const correct = q.ok(ans);
+  if(correct) score++;
+  results.push(correct);
+
+  inp.disabled = true;
+  document.getElementById('btn-submit').disabled = true;
+
+  const fb = document.getElementById('feedback');
+  if(correct){
+    inp.classList.add('glow');
+    fb.className = 'feedback show correct';
+    fb.innerHTML = `✅ <strong>정답입니다!</strong><br>${q.explain}`;
+    spawnParticles();
+  } else {
+    inp.classList.add('shake');
+    setTimeout(()=>inp.classList.remove('shake'),400);
+    fb.className = 'feedback show wrong';
+    fb.innerHTML = `❌ <strong>오답입니다.</strong><br>${q.explain}
+      <div class="correct-ans">✔ 정답 코드: <code>${escHtml(q.ans)}</code></div>`;
+    // 코드 미리보기에 정답 표시
+    document.getElementById('cp-blank').textContent = q.ans;
+    document.getElementById('cp-blank').classList.remove('is-empty');
+    document.getElementById('cp-blank').style.color = 'var(--green)';
+    document.getElementById('cp-blank').style.borderBottomColor = 'var(--green)';
+    document.getElementById('cp-blank').style.background = 'rgba(34,197,94,.12)';
+  }
+
+  const btnNext = document.getElementById('btn-next');
+  btnNext.textContent = cur < Q.length-1 ? '다음 문제 →' : '결과 보기 🏁';
+  btnNext.classList.add('show');
+}
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ────────── 다음 문제 ────────── */
+function nextQuestion(){
+  // 색상 리셋
+  document.getElementById('cp-blank').style.color='';
+  document.getElementById('cp-blank').style.borderBottomColor='';
+  document.getElementById('cp-blank').style.background='';
+
+  cur++;
+  if(cur < Q.length){
+    renderQ();
+  } else {
+    showResult();
+  }
+}
+
+/* ────────── 결과 ────────── */
+function showResult(){
+  document.getElementById('quiz-screen').style.display  ='none';
+  document.getElementById('result-screen').style.display='block';
+
+  const pct = score/Q.length;
+  let emoji,title,sub;
+  if(score===10) { emoji='🏆'; title='완벽해요!'; sub='10문제 모두 맞혔습니다! 진짜 JSP 마스터!'; }
+  else if(score>=8){ emoji='🎉'; title='훌륭해요!'; sub=`${score}개 정답! 거의 다 맞혔네요.`; }
+  else if(score>=6){ emoji='😊'; title='좋아요!'; sub=`${score}개 정답! 조금만 더 복습하면 완벽해질 거예요.`; }
+  else if(score>=4){ emoji='🤔'; title='아쉬워요!'; sub=`${score}개 정답. 틀린 문제를 다시 풀어보세요.`; }
+  else              { emoji='😅'; title='다시 도전!'; sub=`${score}개 정답. JSP 기초를 더 공부해봐요!`; }
+
+  document.getElementById('r-emoji').textContent = emoji;
+  document.getElementById('r-title').textContent = title;
+  document.getElementById('r-sub').textContent   = sub;
+  document.getElementById('r-score').innerHTML   = `${score}<span class="score-denom">/10</span>`;
+
+  setTimeout(()=>{ document.getElementById('r-bar').style.width=(pct*100)+'%'; },100);
+
+  const grid = document.getElementById('r-grid');
+  grid.innerHTML='';
+  results.forEach((ok,i)=>{
+    const d=document.createElement('div');
+    d.className='ri '+(ok?'ok':'bad');
+    d.innerHTML=`<div class="ico">${ok?'✅':'❌'}</div>Q${i+1}`;
+    grid.appendChild(d);
+  });
+
+  if(score>=8) spawnParticles(60);
+  else if(score>=5) spawnParticles(20);
+}
+
+function retryQuiz(){
+  document.getElementById('result-screen').style.display='none';
+  document.getElementById('start-screen').style.display='block';
+}
+
+/* ────────── 파티클 ────────── */
+function spawnParticles(n=18){
+  const cols=['#f472b6','#a855f7','#7dd3fc','#22c55e','#fbbf24','#f97316'];
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    p.style.left=(20+Math.random()*60)+'%';
+    p.style.top =(Math.random()*30)+'%';
+    p.style.background=cols[Math.floor(Math.random()*cols.length)];
+    const sz=(6+Math.random()*10)+'px';
+    p.style.width=sz; p.style.height=sz;
+    p.style.setProperty('--dx',(-100+Math.random()*200)+'px');
+    p.style.setProperty('--r',(Math.random()*720-360)+'deg');
+    p.style.setProperty('--dur',(.8+Math.random()*.8)+'s');
+    p.style.setProperty('--dl2',(Math.random()*.3)+'s');
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),2000);
+  }
+}
+</script>
+</body>
+</html>
